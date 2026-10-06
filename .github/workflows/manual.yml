@@ -1,32 +1,32 @@
-# This is a basic workflow that is manually triggered
+# This workflow runs nightly and can also be triggered manually.
 
-name: Manual workflow
+name: Nightly workflow
 
-# Controls when the action will run. Workflow runs when manually triggered using the UI
-# or API.
 on:
+  schedule:
+    - cron: '0 2 * * *'  # Every day at 02:00 UTC
   workflow_dispatch:
-    # Inputs the workflow accepts.
-    inputs:
-      name:
-        # Friendly description to be shown in the UI instead of 'name'
-        description: 'Person to greet'
-        # Default value if no value is explicitly provided
-        default: 'World'
-        # Input has to be provided for the workflow to run
-        required: true
-        # The data type of the input
-        type: string
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "greet"
-  greet:
-    # The type of runner that the job will run on
+  nightly-run:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Runs a single command using the runners shell
-    - name: Send greeting
-      run: echo "Hello ${{ inputs.name }}"
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create nightly output
+        run: |
+          mkdir -p nightly-output
+          echo "Nightly workflow started at $(date -u)" > nightly-output/nightly-run.txt
+          echo "Repository: $GITHUB_REPOSITORY" >> nightly-output/nightly-run.txt
+          echo "Run ID: $GITHUB_RUN_ID" >> nightly-output/nightly-run.txt
+
+      - name: Upload nightly artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-output-${{ github.run_number }}
+          path: nightly-output/
+          if-no-files-found: error
+          retention-days: 30
